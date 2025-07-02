@@ -15,6 +15,7 @@ import {
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -47,28 +48,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const unsubscribe = onAuthStateChanged(auth!, async (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (fbUser) {
-        const userDocRef = doc(db!, 'users', fbUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as UserProfile);
+      try {
+        setFirebaseUser(fbUser);
+        if (fbUser) {
+          const userDocRef = doc(db!, 'users', fbUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setUser(userDoc.data() as UserProfile);
+          } else {
+            // This case handles new users (from any provider) where a Firestore doc doesn't exist yet.
+            // For email signup, we ensure `updateProfile` is called first.
+            // For Google sign-in, `displayName` is usually available from the provider.
+            const newUserProfile: UserProfile = {
+              uid: fbUser.uid,
+              email: fbUser.email,
+              displayName: fbUser.displayName,
+              role: USER_ROLES.VIEWER, // Default role
+              createdAt: serverTimestamp(),
+            };
+            await setDoc(userDocRef, newUserProfile, { merge: true });
+            setUser(newUserProfile);
+          }
         } else {
-          // This case handles a new Google sign-in where user doc is not yet created
-          const newUserProfile: UserProfile = {
-            uid: fbUser.uid,
-            email: fbUser.email,
-            displayName: fbUser.displayName,
-            role: USER_ROLES.VIEWER, // Default role
-            createdAt: serverTimestamp(),
-          };
-          await setDoc(userDocRef, newUserProfile, { merge: true });
-          setUser(newUserProfile);
+          setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("Error in onAuthStateChanged:", error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -90,16 +99,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isFirebaseConfigured) throw new Error("Firebase is not configured. Please check your .env.local file.");
     try {
         const userCredential = await createUserWithEmailAndPassword(auth!, email, pass);
-        const newUser = userCredential.user;
-        const newUserProfile: UserProfile = {
-            uid: newUser.uid,
-            email: newUser.email,
-            displayName: name,
-            role: USER_ROLES.VIEWER, // Default role
-            createdAt: serverTimestamp(),
-        };
-        await setDoc(doc(db!, "users", newUser.uid), newUserProfile);
-        setUser(newUserProfile);
+        // After creating user, update their profile with the name.
+        // This makes the name available to the onAuthStateChanged listener.
+        await updateProfile(userCredential.user, { displayName: name });
+        // onAuthStateChanged will now fire and handle creating the user document in Firestore.
     } catch (error) {
         console.error("Error signing up with email:", error);
         throw error;
