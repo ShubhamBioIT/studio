@@ -76,8 +76,8 @@ const agentFlow = ai.defineFlow(
       prompt: query,
       model: 'googleai/gemini-2.0-flash',
       tools: [
-        // Ad-hoc tool definitions for actions that require user context.
-        // This avoids the "Cannot define new actions at runtime" error.
+        // This is the correct pattern for a dynamic tool with runtime context.
+        // It's a plain object with an `fn` property.
         {
             name: 'createProject',
             description: 'Creates a new research project. Ask for any missing required fields before calling.',
