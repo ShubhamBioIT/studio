@@ -18,6 +18,45 @@ const UserSchema = z.object({
 // This is the type for the serializable user object passed from the client.
 export type AgentUser = z.infer<typeof UserSchema>;
 
+
+// --- Top-level prompt and tool definitions ---
+
+const projectIdeaPrompt = ai.definePrompt({
+    name: 'projectIdeaPrompt',
+    system: `You are a creative and experienced bioinformatics researcher. Generate 3-5 innovative project ideas based on the provided topic. For each idea, provide a name, a short description, and a suitable omics type. Format the output as a bulleted list.`,
+    input: { schema: z.object({ topic: z.string() }) },
+});
+
+const suggestProjectIdeasTool = ai.defineTool({
+    name: 'suggestProjectIdeas',
+    description: 'Generates creative and relevant project ideas based on a given topic or field of study.',
+    inputSchema: z.object({
+        topic: z.string().describe('The topic or field to generate project ideas for, e.g., "cancer genomics" or "CRISPR technology".')
+    }),
+    outputSchema: z.any()
+}, async ({ topic }) => {
+    const { text } = await projectIdeaPrompt({ topic });
+    return text;
+});
+
+const workflowIdeaPrompt = ai.definePrompt({
+    name: 'workflowIdeaPrompt',
+    system: `You are an expert in creating scientific data analysis pipelines. Generate 3-5 workflow ideas based on the provided topic. For each idea, provide a name, a short description, and a suitable pipeline type. Format the output as a bulleted list.`,
+    input: { schema: z.object({ topic: z.string() }) },
+});
+
+const suggestWorkflowIdeasTool = ai.defineTool({
+    name: 'suggestWorkflowIdeas',
+    description: 'Generates workflow ideas for a given project type or research area.',
+    inputSchema: z.object({
+        topic: z.string().describe('The project type or research area, e.g., "RNA-seq analysis" or "CRISPR library screening".')
+    }),
+    outputSchema: z.any()
+}, async ({ topic }) => {
+    const { text } = await workflowIdeaPrompt({ topic });
+    return text;
+});
+
 // The main agent flow
 const agentFlow = ai.defineFlow(
   {
@@ -31,9 +70,9 @@ const agentFlow = ai.defineFlow(
   async (input) => {
     const { query, user } = input;
 
-    // --- Define Tools within the flow to access user context ---
-
-    // Tool to create a new project
+    // Define context-aware tools inside the flow so they can access the 'user' object.
+    // These are NOT registered with `ai.defineTool` at runtime. They are created dynamically
+    // for the `ai.generate` call, which is a supported pattern for passing context.
     const createProjectTool = ai.defineTool(
       {
         name: 'createProject',
@@ -47,7 +86,6 @@ const agentFlow = ai.defineFlow(
       }
     );
 
-    // Tool to create a new sample
     const createSampleTool = ai.defineTool(
       {
         name: 'createSample',
@@ -61,43 +99,6 @@ const agentFlow = ai.defineFlow(
       }
     );
 
-    // Tool for brainstorming project ideas
-    const suggestProjectIdeasTool = ai.defineTool({
-        name: 'suggestProjectIdeas',
-        description: 'Generates creative and relevant project ideas based on a given topic or field of study.',
-        inputSchema: z.object({
-            topic: z.string().describe('The topic or field to generate project ideas for, e.g., "cancer genomics" or "CRISPR technology".')
-        }),
-        outputSchema: z.any()
-    }, async ({ topic }) => {
-        const ideaPrompt = ai.definePrompt({
-            name: 'projectIdeaPrompt',
-            system: `You are a creative and experienced bioinformatics researcher. Generate 3-5 innovative project ideas based on the provided topic. For each idea, provide a name, a short description, and a suitable omics type. Format the output as a bulleted list.`,
-            input: { schema: z.object({ topic: z.string() }) },
-        });
-        
-        const { text } = await ideaPrompt({ topic });
-        return text;
-    });
-
-    // Tool for brainstorming workflow ideas
-    const suggestWorkflowIdeasTool = ai.defineTool({
-        name: 'suggestWorkflowIdeas',
-        description: 'Generates workflow ideas for a given project type or research area.',
-        inputSchema: z.object({
-            topic: z.string().describe('The project type or research area, e.g., "RNA-seq analysis" or "CRISPR library screening".')
-        }),
-        outputSchema: z.any()
-    }, async ({ topic }) => {
-        const ideaPrompt = ai.definePrompt({
-            name: 'workflowIdeaPrompt',
-            system: `You are an expert in creating scientific data analysis pipelines. Generate 3-5 workflow ideas based on the provided topic. For each idea, provide a name, a short description, and a suitable pipeline type. Format the output as a bulleted list.`,
-            input: { schema: z.object({ topic: z.string() }) },
-        });
-        
-        const { text } = await ideaPrompt({ topic });
-        return text;
-    });
 
     // --- Generate LLM response ---
     
