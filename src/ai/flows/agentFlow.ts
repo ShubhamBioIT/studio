@@ -7,7 +7,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { createProject, CreateProjectServiceSchema } from '@/services/projectService';
 import { createSample, CreateSampleServiceSchema } from '@/services/sampleService';
-import type { UserProfile } from '@/types';
 
 // Zod schema for user details passed to the flow
 const UserSchema = z.object({
@@ -15,6 +14,9 @@ const UserSchema = z.object({
     displayName: z.string().nullable(),
     email: z.string().nullable(),
 });
+
+// This is the type for the serializable user object passed from the client.
+export type AgentUser = z.infer<typeof UserSchema>;
 
 // The main agent flow
 const agentFlow = ai.defineFlow(
@@ -119,14 +121,10 @@ const agentFlow = ai.defineFlow(
 );
 
 // The exported function that is called from the client
-export async function runAgent(query: string, user: UserProfile | null): Promise<string> {
+export async function runAgent(query: string, user: AgentUser | null): Promise<string> {
     if (!user) {
         return "Please sign in to use the AI assistant.";
     }
-    const userData = {
-        uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-    };
-    return agentFlow({ query, user: userData });
+    // The user object from the client is now serializable and matches the schema.
+    return agentFlow({ query, user });
 }

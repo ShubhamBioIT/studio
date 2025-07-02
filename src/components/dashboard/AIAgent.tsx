@@ -34,7 +34,13 @@ export default function AIAgent() {
     setResponse('');
 
     try {
-      const result = await runAgent(query, user);
+      // Create a serializable plain object from the user state.
+      const agentUser = {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+      };
+      const result = await runAgent(query, agentUser);
       setResponse(result);
     } catch (error) {
       console.error('AI Agent Error:', error);
