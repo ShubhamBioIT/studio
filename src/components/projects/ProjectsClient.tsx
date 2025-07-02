@@ -122,7 +122,7 @@ export default function ProjectsClient() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-4 md:gap-8">
+      <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 ease-out">
         <ProjectsDataTable columns={memoizedColumns} data={projects} onAddNew={handleAddNew} />
       </div>
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>

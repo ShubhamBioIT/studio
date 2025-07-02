@@ -127,7 +127,7 @@ export default function SamplesClient() {
 
   return (
     <>
-       <Card>
+       <Card className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 ease-out">
         <CardHeader>
             <CardTitle className="flex items-center gap-2">
                 <Beaker />
