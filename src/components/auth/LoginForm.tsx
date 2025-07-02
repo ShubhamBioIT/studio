@@ -38,6 +38,7 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,6 +74,7 @@ export function LoginForm() {
 
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true);
+    setGoogleError(null);
     try {
         await signInWithGoogle();
         toast({
@@ -83,13 +85,9 @@ export function LoginForm() {
     } catch (error: any) {
         let description = error.message || 'Could not sign in with Google. Please try again.';
         if (error.code === 'auth/unauthorized-domain') {
-            description = 'This domain is not authorized for Google Sign-In. Please add it to your Firebase project under Authentication -> Settings -> Authorized domains.';
+            description = 'This domain is not authorized for Google Sign-In. Please add it to your Firebase project under Authentication -> Settings -> Authorized domains. Copy the domain from your browser\'s address bar.';
         }
-        toast({
-            variant: 'destructive',
-            title: 'Google Sign-In Failed',
-            description,
-        });
+        setGoogleError(description);
     } finally {
         setIsGoogleLoading(false);
     }
@@ -103,6 +101,15 @@ export function LoginForm() {
                 <AlertTitle>Firebase Configuration Error</AlertTitle>
                 <AlertDescription>
                     Sign in is disabled. Please configure your Firebase credentials in <code>.env.local</code>.
+                </AlertDescription>
+            </Alert>
+        )}
+        {googleError && (
+             <Alert variant="destructive" className="mb-6">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Google Sign-In Failed</AlertTitle>
+                <AlertDescription>
+                    {googleError}
                 </AlertDescription>
             </Alert>
         )}
