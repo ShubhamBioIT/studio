@@ -41,3 +41,34 @@ export interface Sample {
   tags?: string[];
   external_db_link?: string;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  omics_type: 'Genomics' | 'Transcriptomics' | 'Proteomics' | 'Multi-omics';
+  lead: string;
+  collaborators?: string[];
+  sample_ids?: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: {
+    uid: string;
+    name: string | null;
+  };
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  description?: string;
+  pipeline_type: 'RNA-seq' | 'Variant Calling' | 'CRISPR Screening' | 'Other';
+  status: 'Draft' | 'Active' | 'Archived';
+  protocol_link?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: {
+    uid: string;
+    name: string | null;
+  };
+}

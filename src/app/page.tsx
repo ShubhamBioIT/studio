@@ -29,8 +29,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    // Allow any authenticated user to read/write samples
+    // Allow any authenticated user to read/write samples, projects, and workflows
     match /samples/{sampleId} {
+      allow read, write: if request.auth != null;
+    }
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null;
+    }
+    match /workflows/{workflowId} {
       allow read, write: if request.auth != null;
     }
   }
