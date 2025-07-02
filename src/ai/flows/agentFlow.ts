@@ -70,42 +70,38 @@ const agentFlow = ai.defineFlow(
   async (input) => {
     const { query, user } = input;
 
-    // Define context-aware tools inside the flow so they can access the 'user' object.
-    // These are NOT registered with `ai.defineTool` at runtime. They are created dynamically
-    // for the `ai.generate` call, which is a supported pattern for passing context.
-    const createProjectTool = ai.defineTool(
-      {
-        name: 'createProject',
-        description: 'Creates a new research project. Ask for any missing required fields before calling.',
-        inputSchema: CreateProjectServiceSchema,
-        outputSchema: z.string().describe("A confirmation message including the new Project ID."),
-      },
-      async (toolInput) => {
-        const newProjectId = await createProject(toolInput, { uid: user.uid, name: user.displayName });
-        return `Successfully created new project "${toolInput.name}" with ID: ${newProjectId}.`;
-      }
-    );
-
-    const createSampleTool = ai.defineTool(
-      {
-        name: 'createSample',
-        description: 'Creates a new lab sample. Ask for any missing required fields before calling.',
-        inputSchema: CreateSampleServiceSchema,
-        outputSchema: z.string().describe("A confirmation message for the created sample."),
-      },
-      async (toolInput) => {
-        const newSampleId = await createSample(toolInput, { uid: user.uid, name: user.displayName }, user.displayName || 'AI Agent');
-        return `Successfully created new sample "${toolInput.sample_id}" in project "${toolInput.project_name}".`;
-      }
-    );
-
-
     // --- Generate LLM response ---
     
     const llmResponse = await ai.generate({
       prompt: query,
       model: 'googleai/gemini-2.0-flash',
-      tools: [createProjectTool, createSampleTool, suggestProjectIdeasTool, suggestWorkflowIdeasTool],
+      tools: [
+        // Ad-hoc tool definitions for actions that require user context.
+        // This avoids the "Cannot define new actions at runtime" error.
+        {
+            name: 'createProject',
+            description: 'Creates a new research project. Ask for any missing required fields before calling.',
+            inputSchema: CreateProjectServiceSchema,
+            outputSchema: z.string().describe("A confirmation message including the new Project ID."),
+            fn: async (toolInput) => {
+                const newProjectId = await createProject(toolInput, { uid: user.uid, name: user.displayName });
+                return `Successfully created new project "${toolInput.name}" with ID: ${newProjectId}.`;
+            },
+        },
+        {
+            name: 'createSample',
+            description: 'Creates a new lab sample. Ask for any missing required fields before calling.',
+            inputSchema: CreateSampleServiceSchema,
+            outputSchema: z.string().describe("A confirmation message for the created sample."),
+            fn: async (toolInput) => {
+                const newSampleId = await createSample(toolInput, { uid: user.uid, name: user.displayName }, user.displayName || 'AI Agent');
+                return `Successfully created new sample "${toolInput.sample_id}" in project "${toolInput.project_name}".`;
+            },
+        },
+        // Statically defined tools that don't need context
+        suggestProjectIdeasTool,
+        suggestWorkflowIdeasTool
+      ],
       system: `You are LabBot, a friendly and highly intelligent AI assistant for the LabTrack AI application.
       - Your goal is to help researchers manage their work efficiently.
       - Be conversational and proactive.
