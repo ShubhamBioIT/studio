@@ -108,10 +108,12 @@ const agentFlow = ai.defineFlow(
         content: [{ text: msg.content }]
     }));
 
+    // Add the current user query to the history array to maintain conversation context
+    genkitHistory.push({ role: 'user', content: [{ text: query }] });
+
     const llmResponse = await ai.generate({
-      prompt: query,
       model: 'googleai/gemini-2.0-flash',
-      history: genkitHistory,
+      history: genkitHistory, // Pass the full, combined history to the model
       tools: [
         createProjectTool,
         createSampleTool,
