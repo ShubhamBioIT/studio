@@ -54,8 +54,8 @@ export function SignupForm() {
       router.push('/');
     } catch (error: any) {
       let description = error.message || 'An unexpected error occurred.';
-      if (error.code === 'auth/configuration-not-found') {
-        description = 'Email/Password sign-in is not enabled in your Firebase project. Please enable it in the Firebase Authentication console.'
+      if (error.code === 'auth/operation-not-allowed') {
+        description = 'Email/Password sign-up is not enabled. Please enable it in the Firebase Authentication console under Sign-in method.'
       }
       toast({
         variant: 'destructive',

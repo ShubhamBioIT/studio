@@ -59,8 +59,8 @@ export function LoginForm() {
       router.push('/');
     } catch (error: any) {
       let description = error.message || 'An unexpected error occurred.';
-      if (error.code === 'auth/configuration-not-found') {
-        description = 'Email/Password sign-in is not enabled in your Firebase project. Please enable it in the Firebase Authentication console.'
+      if (error.code === 'auth/operation-not-allowed') {
+        description = 'Email/Password sign-in is not enabled. Please enable it in the Firebase Authentication console under Sign-in method.'
       }
       toast({
         variant: 'destructive',
@@ -86,6 +86,8 @@ export function LoginForm() {
         let description = error.message || 'Could not sign in with Google. Please try again.';
         if (error.code === 'auth/unauthorized-domain') {
             description = 'This domain is not authorized for Google Sign-In. Please add it to your Firebase project under Authentication -> Settings -> Authorized domains. Copy the domain from your browser\'s address bar.';
+        } else if (error.code === 'auth/operation-not-allowed') {
+            description = 'Google Sign-In is not enabled for this project. Please go to your Firebase Console, open Authentication -> Sign-in method, and enable the Google provider.';
         }
         setGoogleError(description);
     } finally {
