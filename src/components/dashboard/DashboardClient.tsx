@@ -12,6 +12,7 @@ import RecentSamples from './RecentSamples';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import AIAgent from './AIAgent';
 
 export default function DashboardClient() {
   const [samples, setSamples] = useState<Sample[]>([]);
@@ -99,6 +100,7 @@ export default function DashboardClient() {
   return (
     <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 ease-out">
       <div className="flex flex-1 flex-col gap-4 md:gap-8">
+        <AIAgent />
         <StatsCards samples={samples} projects={projects} workflows={workflows} />
         
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
