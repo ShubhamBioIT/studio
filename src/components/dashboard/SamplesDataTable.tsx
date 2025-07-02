@@ -70,16 +70,16 @@ export function SamplesDataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <Input
           placeholder="Filter samples by ID or project..."
           value={(table.getColumn('sample_id')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
             table.getColumn('sample_id')?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="w-full md:max-w-sm"
         />
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 self-end md:self-auto">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">

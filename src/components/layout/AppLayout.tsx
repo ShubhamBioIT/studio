@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { LayoutDashboard, FlaskConical, Beaker, FileText, Terminal } from 'lucide-react';
 import Logo from '../auth/Logo';
@@ -144,8 +145,11 @@ service cloud.firestore {
           </SidebarContent>
         </Sidebar>
         <SidebarInset>
-            <header className="flex h-16 items-center justify-end border-b bg-background px-4 md:px-6">
-                <UserNav />
+            <header className="flex h-16 items-center border-b bg-background px-4 md:px-6">
+                <SidebarTrigger className="md:hidden" />
+                <div className="ml-auto flex items-center gap-4">
+                  <UserNav />
+                </div>
             </header>
             {renderContent()}
         </SidebarInset>

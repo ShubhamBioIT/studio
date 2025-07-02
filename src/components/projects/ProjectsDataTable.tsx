@@ -72,7 +72,7 @@ export function ProjectsDataTable<TData, TValue>({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
                 <CardTitle className="flex items-center gap-2">
                     <FileText />
@@ -80,7 +80,7 @@ export function ProjectsDataTable<TData, TValue>({
                 </CardTitle>
                 <CardDescription>Manage your research projects.</CardDescription>
             </div>
-            <Button onClick={onAddNew}>
+            <Button onClick={onAddNew} className="self-start md:self-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create Project
             </Button>
@@ -88,42 +88,44 @@ export function ProjectsDataTable<TData, TValue>({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <Input
                 placeholder="Filter projects by name..."
                 value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
                 onChange={(event) =>
                     table.getColumn('name')?.setFilterValue(event.target.value)
                 }
-                className="max-w-sm"
+                className="w-full md:max-w-sm"
                 />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="ml-auto">
-                        <SlidersHorizontal className="mr-2 h-4 w-4" />
-                        View
-                    </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                    {table
-                        .getAllColumns()
-                        .filter((column) => column.getCanHide())
-                        .map((column) => {
-                        return (
-                            <DropdownMenuCheckboxItem
-                            key={column.id}
-                            className="capitalize"
-                            checked={column.getIsVisible()}
-                            onCheckedChange={(value) =>
-                                column.toggleVisibility(!!value)
-                            }
-                            >
-                            {column.id.replace(/_/g, ' ')}
-                            </DropdownMenuCheckboxItem>
-                        );
-                        })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="self-end md:self-auto">
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="ml-auto">
+                          <SlidersHorizontal className="mr-2 h-4 w-4" />
+                          View
+                      </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                      {table
+                          .getAllColumns()
+                          .filter((column) => column.getCanHide())
+                          .map((column) => {
+                          return (
+                              <DropdownMenuCheckboxItem
+                              key={column.id}
+                              className="capitalize"
+                              checked={column.getIsVisible()}
+                              onCheckedChange={(value) =>
+                                  column.toggleVisibility(!!value)
+                              }
+                              >
+                              {column.id.replace(/_/g, ' ')}
+                              </DropdownMenuCheckboxItem>
+                          );
+                          })}
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
             </div>
             <div className="rounded-md border bg-card">
                 <Table>
