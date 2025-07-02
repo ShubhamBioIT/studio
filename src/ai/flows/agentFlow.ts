@@ -16,6 +16,12 @@ const UserSchema = z.object({
 });
 export type AgentUser = z.infer<typeof UserSchema>;
 
+const MessageSchema = z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+});
+export type Message = z.infer<typeof MessageSchema>;
+
 
 // --- Tool Schemas with User Context ---
 const CreateProjectToolSchema = CreateProjectServiceSchema.extend({
@@ -81,22 +87,31 @@ const suggestWorkflowIdeasTool = ai.defineTool({
     return llmResponse.text;
 });
 
+const AgentFlowInputSchema = z.object({
+    query: z.string(),
+    history: z.array(MessageSchema),
+    user: UserSchema,
+});
+
 // The main agent flow
 const agentFlow = ai.defineFlow(
   {
     name: 'agentFlow',
-    inputSchema: z.object({
-        query: z.string(),
-        user: UserSchema,
-    }),
+    inputSchema: AgentFlowInputSchema,
     outputSchema: z.string(),
   },
   async (input) => {
-    const { query, user } = input;
+    const { query, history, user } = input;
     
+    const genkitHistory = history.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
+        content: [{ text: msg.content }]
+    }));
+
     const llmResponse = await ai.generate({
       prompt: query,
       model: 'googleai/gemini-2.0-flash',
+      history: genkitHistory,
       tools: [
         createProjectTool,
         createSampleTool,
@@ -120,9 +135,9 @@ const agentFlow = ai.defineFlow(
 );
 
 // The exported function that is called from the client
-export async function runAgent(query: string, user: AgentUser | null): Promise<string> {
+export async function runAgent(query: string, history: Message[], user: AgentUser | null): Promise<string> {
     if (!user) {
         return "Please sign in to use the AI assistant.";
     }
-    return agentFlow({ query, user });
+    return agentFlow({ query, history, user });
 }

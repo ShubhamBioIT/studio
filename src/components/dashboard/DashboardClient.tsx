@@ -99,19 +99,25 @@ export default function DashboardClient() {
 
   return (
     <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 ease-out">
-      <div className="flex flex-1 flex-col gap-4 md:gap-8">
-        <AIAgent />
-        <StatsCards samples={samples} projects={projects} workflows={workflows} />
-        
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
-            <div className="lg:col-span-1 space-y-4">
-                <RecentProjects projects={projects.slice(0, 3)} />
-                <RecentWorkflows workflows={workflows.slice(0, 3)} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 items-start">
+        {/* Main Content Column */}
+        <div className="lg:col-span-2 flex flex-col gap-4 md:gap-8">
+            <StatsCards samples={samples} projects={projects} workflows={workflows} />
+            
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3 xl:items-start">
+                <div className="xl:col-span-1 space-y-4">
+                    <RecentProjects projects={projects.slice(0, 3)} />
+                    <RecentWorkflows workflows={workflows.slice(0, 3)} />
+                </div>
+                <div className="xl:col-span-2 space-y-4">
+                    <StatusChart samples={samples} />
+                    <RecentSamples samples={samples.slice(0, 5)} />
+                </div>
             </div>
-            <div className="lg:col-span-2 space-y-4">
-                <StatusChart samples={samples} />
-                <RecentSamples samples={samples.slice(0, 5)} />
-            </div>
+        </div>
+        {/* AI Agent Column */}
+        <div className="lg:col-span-1">
+            <AIAgent />
         </div>
       </div>
     </div>
