@@ -14,12 +14,42 @@ const UserSchema = z.object({
     displayName: z.string().nullable(),
     email: z.string().nullable(),
 });
-
-// This is the type for the serializable user object passed from the client.
 export type AgentUser = z.infer<typeof UserSchema>;
 
 
-// --- Top-level prompt and tool definitions ---
+// --- Tool Schemas with User Context ---
+const CreateProjectToolSchema = CreateProjectServiceSchema.extend({
+    user: UserSchema.describe("The user performing the action."),
+});
+
+const CreateSampleToolSchema = CreateSampleServiceSchema.extend({
+    user: UserSchema.describe("The user performing the action."),
+});
+
+// --- Top-level Tool and Prompt Definitions ---
+
+const createProjectTool = ai.defineTool({
+    name: 'createProject',
+    description: 'Creates a new research project. You must include the user object in the input.',
+    inputSchema: CreateProjectToolSchema,
+    outputSchema: z.string().describe("A confirmation message including the new Project ID."),
+    fn: async ({ user, ...projectData }) => {
+        const newProjectId = await createProject(projectData, { uid: user.uid, name: user.displayName });
+        return `Successfully created new project "${projectData.name}" with ID: ${newProjectId}.`;
+    },
+});
+
+const createSampleTool = ai.defineTool({
+    name: 'createSample',
+    description: 'Creates a new lab sample. You must include the user object in the input.',
+    inputSchema: CreateSampleToolSchema,
+    outputSchema: z.string().describe("A confirmation message for the created sample."),
+    fn: async ({ user, ...sampleData }) => {
+        const newSampleId = await createSample(sampleData, { uid: user.uid, name: user.displayName }, user.displayName || 'AI Agent');
+        return `Successfully created new sample "${sampleData.sample_id}" in project "${sampleData.project_name}".`;
+    },
+});
+
 
 const projectIdeaPrompt = ai.definePrompt({
     name: 'projectIdeaPrompt',
@@ -69,36 +99,13 @@ const agentFlow = ai.defineFlow(
   },
   async (input) => {
     const { query, user } = input;
-
-    // --- Generate LLM response ---
     
     const llmResponse = await ai.generate({
       prompt: query,
       model: 'googleai/gemini-2.0-flash',
       tools: [
-        // This is the correct pattern for a dynamic tool with runtime context.
-        // It's a plain object with an `fn` property.
-        {
-            name: 'createProject',
-            description: 'Creates a new research project. Ask for any missing required fields before calling.',
-            inputSchema: CreateProjectServiceSchema,
-            outputSchema: z.string().describe("A confirmation message including the new Project ID."),
-            fn: async (toolInput) => {
-                const newProjectId = await createProject(toolInput, { uid: user.uid, name: user.displayName });
-                return `Successfully created new project "${toolInput.name}" with ID: ${newProjectId}.`;
-            },
-        },
-        {
-            name: 'createSample',
-            description: 'Creates a new lab sample. Ask for any missing required fields before calling.',
-            inputSchema: CreateSampleServiceSchema,
-            outputSchema: z.string().describe("A confirmation message for the created sample."),
-            fn: async (toolInput) => {
-                const newSampleId = await createSample(toolInput, { uid: user.uid, name: user.displayName }, user.displayName || 'AI Agent');
-                return `Successfully created new sample "${toolInput.sample_id}" in project "${toolInput.project_name}".`;
-            },
-        },
-        // Statically defined tools that don't need context
+        createProjectTool,
+        createSampleTool,
         suggestProjectIdeasTool,
         suggestWorkflowIdeasTool
       ],
@@ -106,11 +113,12 @@ const agentFlow = ai.defineFlow(
       - Your goal is to help researchers manage their work efficiently.
       - Be conversational and proactive.
       - When asked to create something (like a project or sample), you MUST use the provided tools.
+      - When using a tool that requires a 'user' parameter, you MUST pass the entire user object provided below into that parameter.
       - Before using a tool, ensure you have all the required information from the user. If not, ask clarifying questions to get the necessary details (e.g., "What should I name the project?", "What omics type is it?").
       - When asked for ideas for projects or workflows, use the 'suggestProjectIdeas' or 'suggestWorkflowIdeas' tools respectively.
       - After a tool is successfully used, confirm the action with the user using the tool's output.
       - If you can't fulfill a request, explain why in a helpful way.
-      - The current user is ${user.displayName} (${user.email}). Assume they are the project lead unless they specify otherwise.`
+      - The current user is ${JSON.stringify(user)}. Assume they are the project lead unless they specify otherwise.`
     });
 
     return llmResponse.text;
@@ -122,6 +130,5 @@ export async function runAgent(query: string, user: AgentUser | null): Promise<s
     if (!user) {
         return "Please sign in to use the AI assistant.";
     }
-    // The user object from the client is now serializable and matches the schema.
     return agentFlow({ query, user });
 }
