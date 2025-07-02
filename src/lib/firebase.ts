@@ -12,19 +12,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let storage: FirebaseStorage;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
-if (getApps().length) {
-  app = getApp();
+if (firebaseConfig.apiKey) {
+  if (getApps().length) {
+    app = getApp();
+  } else {
+    app = initializeApp(firebaseConfig);
+  }
+
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
 } else {
-  app = initializeApp(firebaseConfig);
+    console.warn("Firebase configuration is missing. Firebase features will be disabled. Please create a .env.local file with your Firebase project credentials.");
 }
-
-auth = getAuth(app);
-db = getFirestore(app);
-storage = getStorage(app);
 
 export { app, auth, db, storage };

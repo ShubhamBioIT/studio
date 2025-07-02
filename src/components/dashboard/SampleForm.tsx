@@ -43,7 +43,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['pending', 'in-progress', 'completed', 'failed']),
   date_collected: z.date(),
-  attachments: z.instanceof(FileList).optional(),
+  attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList)).optional(),
 });
 
 type SampleFormProps = {
@@ -72,6 +72,15 @@ export function SampleForm({ onClose }: SampleFormProps) {
         toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add a sample.' });
         return;
     }
+    if (!db || !storage) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Please ensure your Firebase credentials are set up correctly in .env.local.'
+        });
+        return;
+    }
+
     setIsSubmitting(true);
     setUploadProgress(0);
 

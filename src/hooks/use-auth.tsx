@@ -39,6 +39,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth || !db) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
@@ -68,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithGoogle = async () => {
+    if (!auth) throw new Error("Firebase is not configured. Please check your .env.local file.");
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
@@ -79,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string) => {
+    if (!auth || !db) throw new Error("Firebase is not configured. Please check your .env.local file.");
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         const newUser = userCredential.user;
@@ -98,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
+    if (!auth) throw new Error("Firebase is not configured. Please check your .env.local file.");
     try {
         await signInWithEmailAndPassword(auth, email, pass);
         // onAuthStateChanged will handle the rest
@@ -108,6 +116,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (!auth) {
+        console.warn("Firebase not configured, cannot sign out.");
+        return;
+    }
     await firebaseSignOut(auth);
     setUser(null);
   };

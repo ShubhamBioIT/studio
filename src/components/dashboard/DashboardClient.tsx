@@ -9,12 +9,20 @@ import StatusChart from './StatusChart';
 import { SamplesDataTable } from './SamplesDataTable';
 import { columns } from './columns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
 export default function DashboardClient() {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(true);
 
   useEffect(() => {
+    if (!db) {
+      setIsFirebaseConfigured(false);
+      setLoading(false);
+      return;
+    }
     const q = query(collection(db, 'samples'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const samplesData: Sample[] = [];
@@ -25,6 +33,7 @@ export default function DashboardClient() {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching samples:", error);
+      setIsFirebaseConfigured(false);
       setLoading(false);
     });
 
@@ -50,6 +59,21 @@ export default function DashboardClient() {
                 </div>
             </div>
         </div>
+    );
+  }
+
+  if (!isFirebaseConfigured) {
+    return (
+      <Alert variant="destructive" className="mt-4">
+        <Terminal className="h-4 w-4" />
+        <AlertTitle>Firebase Configuration Error</AlertTitle>
+        <AlertDescription>
+          The application could not connect to Firebase. Please ensure your{' '}
+          <code>.env.local</code> file is set up correctly with the necessary
+          Firebase project credentials. You can use the{' '}
+          <code>.env.example</code> file as a template.
+        </AlertDescription>
+      </Alert>
     );
   }
 
