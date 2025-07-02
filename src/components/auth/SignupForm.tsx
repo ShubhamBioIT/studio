@@ -18,6 +18,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -26,7 +28,7 @@ const formSchema = z.object({
 });
 
 export function SignupForm() {
-  const { signUpWithEmail } = useAuth();
+  const { signUpWithEmail, isFirebaseConfigured } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +64,15 @@ export function SignupForm() {
 
   return (
      <Card className="p-6 sm:p-8">
+        {!isFirebaseConfigured && (
+            <Alert variant="destructive" className="mb-6">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Firebase Configuration Error</AlertTitle>
+                <AlertDescription>
+                    Sign up is disabled. Please configure your Firebase credentials in <code>.env.local</code>.
+                </AlertDescription>
+            </Alert>
+        )}
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-4">
@@ -72,7 +83,7 @@ export function SignupForm() {
                     <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input placeholder="John Doe" {...field} disabled={!isFirebaseConfigured} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -85,7 +96,7 @@ export function SignupForm() {
                     <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                        <Input placeholder="name@example.com" {...field} />
+                        <Input placeholder="name@example.com" {...field} disabled={!isFirebaseConfigured} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -98,14 +109,14 @@ export function SignupForm() {
                     <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input type="password" placeholder="••••••••" {...field} disabled={!isFirebaseConfigured}/>
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
                 {isLoading && <span className="animate-spin mr-2">⚙️</span>}
                 Create Account
             </Button>

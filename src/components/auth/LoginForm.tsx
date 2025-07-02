@@ -16,9 +16,10 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -31,7 +32,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export function LoginForm() {
-  const { signInWithGoogle, signInWithEmail } = useAuth();
+  const { signInWithGoogle, signInWithEmail, isFirebaseConfigured } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -87,6 +88,15 @@ export function LoginForm() {
 
   return (
     <Card className="p-6 sm:p-8">
+        {!isFirebaseConfigured && (
+            <Alert variant="destructive" className="mb-6">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Firebase Configuration Error</AlertTitle>
+                <AlertDescription>
+                    Sign in is disabled. Please configure your Firebase credentials in <code>.env.local</code>.
+                </AlertDescription>
+            </Alert>
+        )}
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-4">
@@ -97,7 +107,7 @@ export function LoginForm() {
                     <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                        <Input placeholder="name@example.com" {...field} />
+                        <Input placeholder="name@example.com" {...field} disabled={!isFirebaseConfigured} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -110,14 +120,14 @@ export function LoginForm() {
                     <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input type="password" placeholder="••••••••" {...field} disabled={!isFirebaseConfigured} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
               {isLoading && <span className="animate-spin mr-2">⚙️</span>}
               Sign In
             </Button>
@@ -133,7 +143,7 @@ export function LoginForm() {
                 </span>
             </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || !isFirebaseConfigured}>
             {isGoogleLoading ? <span className="animate-spin mr-2">⚙️</span> : <GoogleIcon className="mr-2" />}
             Google
         </Button>
