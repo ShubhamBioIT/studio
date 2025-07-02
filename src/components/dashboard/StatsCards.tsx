@@ -1,58 +1,44 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Beaker, Clock, CheckCircle, XCircle } from 'lucide-react';
-import type { Sample } from '@/types';
-import { SAMPLE_STATUS } from '@/lib/constants';
+import { Beaker, FileText, FlaskConical } from 'lucide-react';
+import type { Sample, Project, Workflow } from '@/types';
 
 interface StatsCardsProps {
   samples: Sample[];
+  projects: Project[];
+  workflows: Workflow[];
 }
 
-export default function StatsCards({ samples }: StatsCardsProps) {
-  const totalSamples = samples.length;
-  const pendingSamples = samples.filter(s => s.status === SAMPLE_STATUS.PENDING).length;
-  const completedSamples = samples.filter(s => s.status === SAMPLE_STATUS.COMPLETED).length;
-  const failedSamples = samples.filter(s => s.status === SAMPLE_STATUS.FAILED).length;
-
+export default function StatsCards({ samples, projects, workflows }: StatsCardsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Samples</CardTitle>
           <Beaker className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalSamples}</div>
+          <div className="text-2xl font-bold">{samples.length}</div>
           <p className="text-xs text-muted-foreground">All registered samples</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+          <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{pendingSamples}</div>
-          <p className="text-xs text-muted-foreground">Samples awaiting processing</p>
+          <div className="text-2xl font-bold">{projects.length}</div>
+          <p className="text-xs text-muted-foreground">Active and archived projects</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Completed</CardTitle>
-          <CheckCircle className="h-4 w-4 text-green-500" />
+          <CardTitle className="text-sm font-medium">Total Workflows</CardTitle>
+          <FlaskConical className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{completedSamples}</div>
-          <p className="text-xs text-muted-foreground">Successfully processed</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Failed</CardTitle>
-          <XCircle className="h-4 w-4 text-destructive" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{failedSamples}</div>
-          <p className="text-xs text-muted-foreground">Processing failures</p>
+          <div className="text-2xl font-bold">{workflows.length}</div>
+          <p className="text-xs text-muted-foreground">Defined analysis pipelines</p>
         </CardContent>
       </Card>
     </div>
