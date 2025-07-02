@@ -24,19 +24,20 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, FileIcon, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { SAMPLE_STATUS } from '@/lib/constants';
 import type { Attachment, Sample } from '@/types';
 import { Progress } from '../ui/progress';
 import { suggestTags } from '@/ai/flows/suggestTagsFlow';
+import Link from 'next/link';
 
 const formSchema = z.object({
   sample_id: z.string().min(1, 'Sample ID is required.'),
@@ -44,7 +45,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['pending', 'in-progress', 'completed', 'failed']),
   date_collected: z.date(),
-  attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList).nullable()).optional(),
+  new_attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList).nullable()).optional(),
   tissue_type: z.string().optional(),
   extraction_method: z.string().optional(),
   storage_condition: z.string().optional(),
@@ -63,7 +64,7 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
-
+  const [currentAttachments, setCurrentAttachments] = useState<Attachment[]>([]);
 
   const isEditMode = !!sample;
 
@@ -75,7 +76,7 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
       description: '',
       status: 'pending',
       date_collected: new Date(),
-      attachments: null,
+      new_attachments: null,
       tissue_type: '',
       extraction_method: '',
       storage_condition: '',
@@ -92,13 +93,14 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
         description: sample.description || '',
         status: sample.status,
         date_collected: sample.date_collected.toDate(),
-        attachments: null,
+        new_attachments: null,
         tissue_type: sample.tissue_type || '',
         extraction_method: sample.extraction_method || '',
         storage_condition: sample.storage_condition || '',
         tags: sample.tags ? sample.tags.join(', ') : '',
         external_db_link: sample.external_db_link || '',
       });
+      setCurrentAttachments(sample.attachments || []);
     } else {
         form.reset({
             sample_id: '',
@@ -106,15 +108,20 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
             description: '',
             status: 'pending',
             date_collected: new Date(),
-            attachments: null,
+            new_attachments: null,
             tissue_type: '',
             extraction_method: '',
             storage_condition: '',
             tags: '',
             external_db_link: '',
         });
+        setCurrentAttachments([]);
     }
   }, [sample, form, isEditMode]);
+
+  const handleDeleteAttachment = (indexToDelete: number) => {
+    setCurrentAttachments(prev => prev.filter((_, index) => index !== indexToDelete));
+  };
   
   async function handleSuggestTags() {
     const description = form.getValues('description');
@@ -145,16 +152,8 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add a sample.' });
-        return;
-    }
-    if (!db || !storage) {
-        toast({
-            variant: 'destructive',
-            title: 'Firebase Not Configured',
-            description: 'Please ensure your Firebase credentials are set up correctly in .env.local.'
-        });
+    if (!user || !db || !storage) {
+        toast({ variant: 'destructive', title: 'Error', description: 'User not logged in or Firebase not configured.' });
         return;
     }
 
@@ -162,11 +161,32 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
     setUploadProgress(0);
 
     try {
-        const fileAttachments: Attachment[] = sample?.attachments || [];
-        if (values.attachments && values.attachments.length > 0) {
-            for (let i = 0; i < values.attachments.length; i++) {
-                const file = values.attachments[i];
-                const storageRef = ref(storage, `samples/${values.sample_id}/${file.name}`);
+        // --- Handle attachment deletions ---
+        if (isEditMode && sample) {
+            const originalUrls = sample.attachments.map(a => a.url);
+            const currentUrls = currentAttachments.map(a => a.url);
+            const deletedUrls = originalUrls.filter(url => !currentUrls.includes(url));
+
+            for (const urlToDelete of deletedUrls) {
+                try {
+                    const fileRef = ref(storage, urlToDelete);
+                    await deleteObject(fileRef);
+                } catch (error: any) {
+                    // Ignore not-found errors, file might already be deleted
+                    if (error.code !== 'storage/object-not-found') {
+                        console.error("Error deleting file from storage:", error);
+                        // Optionally notify user, but continue the process
+                    }
+                }
+            }
+        }
+        
+        // --- Handle new attachment uploads ---
+        const newUploadedAttachments: Attachment[] = [];
+        if (values.new_attachments && values.new_attachments.length > 0) {
+            for (let i = 0; i < values.new_attachments.length; i++) {
+                const file = values.new_attachments[i];
+                const storageRef = ref(storage, `samples/${values.sample_id}/${Date.now()}_${file.name}`);
                 const uploadTask = uploadBytesResumable(storageRef, file);
 
                 await new Promise<void>((resolve, reject) => {
@@ -181,7 +201,7 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
                         },
                         async () => {
                             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                            fileAttachments.push({
+                            newUploadedAttachments.push({
                                 name: file.name,
                                 url: downloadURL,
                                 type: file.type,
@@ -195,28 +215,26 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
         }
         setUploadProgress(100);
 
+        const finalAttachments = [...currentAttachments, ...newUploadedAttachments];
         const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
 
         const dataToSave = {
             ...values,
             tags: tagsArray,
+            attachments: finalAttachments,
             date_collected: Timestamp.fromDate(values.date_collected),
             updatedAt: serverTimestamp(),
         };
         
-        delete (dataToSave as any).attachments;
+        delete (dataToSave as any).new_attachments;
 
         if (isEditMode) {
             const sampleDocRef = doc(db, 'samples', sample.id);
-            await updateDoc(sampleDocRef, {
-                ...dataToSave,
-                attachments: fileAttachments,
-            });
+            await updateDoc(sampleDocRef, dataToSave);
             toast({ title: 'Success', description: 'Sample updated successfully.' });
         } else {
             await addDoc(collection(db, 'samples'), {
                 ...dataToSave,
-                attachments: fileAttachments,
                 createdAt: serverTimestamp(),
                 collected_by: user.displayName || user.email,
                 createdBy: {
@@ -240,7 +258,7 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[85vh] overflow-y-auto pr-6">
         <FormField
           control={form.control}
           name="sample_id"
@@ -394,23 +412,44 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
             </FormItem>
           )}
         />
+        
+        {isEditMode && currentAttachments.length > 0 && (
+            <div className="space-y-2">
+                <FormLabel>Existing Attachments</FormLabel>
+                <div className="space-y-2 rounded-md border p-2">
+                    {currentAttachments.map((att, index) => (
+                        <div key={index} className="flex items-center justify-between text-sm p-1 rounded-md hover:bg-muted/50">
+                            <Link href={att.url} target="_blank" className="flex items-center gap-2 truncate" title={att.name}>
+                                <FileIcon className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{att.name}</span>
+                            </Link>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleDeleteAttachment(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Delete attachment</span>
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
+
         <FormField
           control={form.control}
-          name="attachments"
+          name="new_attachments"
           render={({ field: { onChange, value, ...rest }}) => (
             <FormItem>
-              <FormLabel>Attachments</FormLabel>
+              <FormLabel>{isEditMode ? 'Upload New Attachments' : 'Attachments'}</FormLabel>
               <FormControl>
                 <Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...rest} />
               </FormControl>
-              <FormDescription>Upload images, CSV, FASTA files, etc. Existing attachments are preserved.</FormDescription>
+              <FormDescription>Upload images, CSV, FASTA files, etc.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
         {isSubmitting && uploadProgress !== null && (
             <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">{uploadProgress < 100 ? 'Uploading files...' : 'Finalizing...'}</p>
+                <p className="text-sm text-muted-foreground">{uploadProgress < 100 ? `Uploading files... ${Math.round(uploadProgress)}%` : 'Finalizing...'}</p>
                 <Progress value={uploadProgress} />
             </div>
         )}

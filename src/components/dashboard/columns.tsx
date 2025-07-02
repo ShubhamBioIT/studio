@@ -1,7 +1,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown, Download, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Download, Edit, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,11 +10,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import type { Sample, SampleStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 const statusVariant: Record<SampleStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     pending: 'outline',
@@ -25,7 +30,7 @@ const statusVariant: Record<SampleStatus, 'default' | 'secondary' | 'destructive
 
 const statusColor: Record<SampleStatus, string> = {
     pending: 'border-yellow-500 text-yellow-500',
-    'in-progress': 'bg-primary text-primary-foreground',
+    'in-progress': 'bg-blue-500 text-white',
     completed: 'bg-green-500 text-white',
     failed: 'bg-destructive text-destructive-foreground',
 }
@@ -80,7 +85,8 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
         header: 'Status',
         cell: ({ row }) => {
             const status = row.getValue('status') as SampleStatus;
-            return <Badge variant={statusVariant[status]} className={statusColor[status]}>{status}</Badge>
+            const formattedStatus = status.replace('-', ' ');
+            return <Badge variant={statusVariant[status]} className={statusColor[status]}>{formattedStatus}</Badge>
         }
     },
     {
@@ -100,6 +106,21 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
         enableHiding: true,
     },
     {
+        accessorKey: 'tissue_type',
+        header: 'Tissue Type',
+        enableHiding: true,
+    },
+    {
+        accessorKey: 'extraction_method',
+        header: 'Extraction Method',
+        enableHiding: true,
+    },
+    {
+        accessorKey: 'storage_condition',
+        header: 'Storage Condition',
+        enableHiding: true,
+    },
+    {
         accessorKey: 'date_collected',
         header: 'Date Collected',
         cell: ({ row }) => {
@@ -115,6 +136,7 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
         id: 'actions',
         cell: ({ row }) => {
             const sample = row.original;
+            const hasAttachments = sample.attachments && sample.attachments.length > 0;
             return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -132,7 +154,22 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onEdit(sample)}><Edit className="mr-2 h-4 w-4" /> Edit Sample</DropdownMenuItem>
-                    <DropdownMenuItem disabled><Download className="mr-2 h-4 w-4" /> Download Files</DropdownMenuItem>
+                    
+                    <DropdownMenuSub>
+                        <DropdownMenuSubTrigger disabled={!hasAttachments}>
+                            <FileDown className="mr-2 h-4 w-4" /> Download Files
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                                {hasAttachments && sample.attachments.map(att => (
+                                    <DropdownMenuItem key={att.url} asChild>
+                                        <Link href={att.url} target="_blank" download={att.name}>{att.name}</Link>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                    </DropdownMenuSub>
+
                     <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(sample)}><Trash2 className="mr-2 h-4 w-4" /> Delete Sample</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
