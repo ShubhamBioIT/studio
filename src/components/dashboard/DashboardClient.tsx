@@ -15,11 +15,11 @@ import { Terminal } from 'lucide-react';
 export default function DashboardClient() {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!db) {
-      setIsFirebaseConfigured(false);
+      setFetchError("The application could not connect to Firebase. Please ensure your .env.local file is set up correctly.");
       setLoading(false);
       return;
     }
@@ -30,10 +30,11 @@ export default function DashboardClient() {
         samplesData.push({ id: doc.id, ...doc.data() } as Sample);
       });
       setSamples(samplesData);
+      setFetchError(null);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching samples:", error);
-      setIsFirebaseConfigured(false);
+      setFetchError(`Failed to fetch samples. This is often due to Firestore Security Rules. Please ensure authenticated users have permission to read the 'samples' collection. Error: ${error.message}`);
       setLoading(false);
     });
 
@@ -62,16 +63,13 @@ export default function DashboardClient() {
     );
   }
 
-  if (!isFirebaseConfigured) {
+  if (fetchError) {
     return (
       <Alert variant="destructive" className="mt-4">
         <Terminal className="h-4 w-4" />
-        <AlertTitle>Firebase Configuration Error</AlertTitle>
+        <AlertTitle>Data Fetching Error</AlertTitle>
         <AlertDescription>
-          The application could not connect to Firebase. Please ensure your{' '}
-          <code>.env.local</code> file is set up correctly with the necessary
-          Firebase project credentials. You can use the{' '}
-          <code>.env.example</code> file as a template.
+          {fetchError}
         </AlertDescription>
       </Alert>
     );
