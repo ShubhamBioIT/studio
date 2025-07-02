@@ -81,10 +81,14 @@ export function LoginForm() {
         });
         router.push('/');
     } catch (error: any) {
+        let description = error.message || 'Could not sign in with Google. Please try again.';
+        if (error.code === 'auth/unauthorized-domain') {
+            description = 'This domain is not authorized for Google Sign-In. Please add it to your Firebase project under Authentication -> Settings -> Authorized domains.';
+        }
         toast({
             variant: 'destructive',
             title: 'Google Sign-In Failed',
-            description: error.message || 'Could not sign in with Google. Please try again.',
+            description,
         });
     } finally {
         setIsGoogleLoading(false);
