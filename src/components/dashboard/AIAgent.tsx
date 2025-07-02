@@ -8,22 +8,33 @@ import { Sparkles } from 'lucide-react';
 import { runAgent } from '@/ai/flows/agentFlow';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function AIAgent() {
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: 'You must be signed in to use the AI assistant.',
+        });
+        return;
+    }
+
     setIsLoading(true);
     setResponse('');
 
     try {
-      const result = await runAgent(query);
+      const result = await runAgent(query, user);
       setResponse(result);
     } catch (error) {
       console.error('AI Agent Error:', error);
