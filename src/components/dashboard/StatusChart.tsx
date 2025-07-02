@@ -46,12 +46,12 @@ export default function StatusChart({ samples }: StatusChartProps) {
       return acc;
     }, {} as Record<string, number>);
 
-    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+    return Object.entries(statusCounts).map(([name, value]) => ({ name: name.replace('-', ' '), value }));
   }, [samples]);
 
   if (samples.length === 0) {
     return (
-        <Card className="h-full">
+        <Card>
             <CardHeader>
                 <CardTitle>Sample Status</CardTitle>
             </CardHeader>
@@ -63,7 +63,7 @@ export default function StatusChart({ samples }: StatusChartProps) {
   }
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
         <CardTitle>Sample Status Distribution</CardTitle>
       </CardHeader>
@@ -82,7 +82,7 @@ export default function StatusChart({ samples }: StatusChartProps) {
                 dataKey="value"
                 >
                 {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS]} />
+                    <Cell key={`cell-${index}`} fill={COLORS[entry.name.replace(' ', '-') as keyof typeof COLORS]} />
                 ))}
                 </Pie>
             </PieChart>

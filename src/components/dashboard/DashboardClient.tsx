@@ -97,11 +97,11 @@ export default function DashboardClient() {
   }
 
   return (
-    <>
+    <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500 ease-out">
       <div className="flex flex-1 flex-col gap-4 md:gap-8">
         <StatsCards samples={samples} projects={projects} workflows={workflows} />
         
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
             <div className="lg:col-span-1 space-y-4">
                 <RecentProjects projects={projects.slice(0, 3)} />
                 <RecentWorkflows workflows={workflows.slice(0, 3)} />
@@ -112,6 +112,6 @@ export default function DashboardClient() {
             </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
