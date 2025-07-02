@@ -17,7 +17,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserProfile } from '@/types';
 import { USER_ROLES } from '@/lib/constants';
@@ -32,6 +32,7 @@ interface AuthContextType {
   signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUserProfile: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -125,8 +126,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  const updateUserProfile = async (name: string) => {
+    if (!auth || !db || !auth.currentUser) {
+        throw new Error('User not authenticated.');
+    }
+    try {
+        // Update Firebase Auth profile
+        await updateProfile(auth.currentUser, { displayName: name });
+        
+        // Update Firestore user document
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await updateDoc(userDocRef, { displayName: name });
+
+        // Update local state to reflect change immediately
+        setUser(currentUser => {
+            if (!currentUser) return null;
+            return { ...currentUser, displayName: name };
+        });
+        
+        // This triggers a re-render in components that use `firebaseUser`
+        setFirebaseUser(auth.currentUser);
+
+    } catch(error) {
+        console.error("Error updating profile:", error);
+        throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, isFirebaseConfigured, error, signInWithGoogle, signUpWithEmail, signInWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, isFirebaseConfigured, error, signInWithGoogle, signUpWithEmail, signInWithEmail, signOut, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );
