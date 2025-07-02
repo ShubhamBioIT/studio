@@ -36,6 +36,7 @@ import { db, storage } from '@/lib/firebase';
 import { SAMPLE_STATUS } from '@/lib/constants';
 import type { Attachment, Sample } from '@/types';
 import { Progress } from '../ui/progress';
+import { suggestTags } from '@/ai/flows/suggestTagsFlow';
 
 const formSchema = z.object({
   sample_id: z.string().min(1, 'Sample ID is required.'),
@@ -43,7 +44,12 @@ const formSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['pending', 'in-progress', 'completed', 'failed']),
   date_collected: z.date(),
-  attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList).optional()).nullable(),
+  attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList).nullable()).optional(),
+  tissue_type: z.string().optional(),
+  extraction_method: z.string().optional(),
+  storage_condition: z.string().optional(),
+  tags: z.string().optional(),
+  external_db_link: z.string().url().optional().or(z.literal('')),
 });
 
 type SampleFormProps = {
@@ -56,6 +62,8 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+
 
   const isEditMode = !!sample;
 
@@ -68,11 +76,16 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
       status: 'pending',
       date_collected: new Date(),
       attachments: null,
+      tissue_type: '',
+      extraction_method: '',
+      storage_condition: '',
+      tags: '',
+      external_db_link: '',
     },
   });
 
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode && sample) {
       form.reset({
         sample_id: sample.sample_id,
         project_name: sample.project_name,
@@ -80,6 +93,11 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
         status: sample.status,
         date_collected: sample.date_collected.toDate(),
         attachments: null,
+        tissue_type: sample.tissue_type || '',
+        extraction_method: sample.extraction_method || '',
+        storage_condition: sample.storage_condition || '',
+        tags: sample.tags ? sample.tags.join(', ') : '',
+        external_db_link: sample.external_db_link || '',
       });
     } else {
         form.reset({
@@ -89,9 +107,42 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
             status: 'pending',
             date_collected: new Date(),
             attachments: null,
+            tissue_type: '',
+            extraction_method: '',
+            storage_condition: '',
+            tags: '',
+            external_db_link: '',
         });
     }
   }, [sample, form, isEditMode]);
+  
+  async function handleSuggestTags() {
+    const description = form.getValues('description');
+    if (!description) {
+        toast({ variant: 'destructive', title: 'Description needed', description: 'Please enter a description first to get tag suggestions.' });
+        return;
+    }
+    setIsSuggesting(true);
+    try {
+        const result = await suggestTags({ description });
+        if (result.tags && result.tags.length > 0) {
+            const newTags = result.tags.join(', ');
+            const existingTags = form.getValues('tags');
+            const combinedTags = existingTags ? `${existingTags}, ${newTags}` : newTags;
+            const uniqueTags = Array.from(new Set(combinedTags.split(',').map(t => t.trim()).filter(Boolean))).join(', ');
+            form.setValue('tags', uniqueTags, { shouldValidate: true });
+            toast({ title: 'Success', description: 'AI-suggested tags have been added.' });
+        } else {
+            toast({ title: 'No suggestions', description: 'The AI could not find any relevant tags.' });
+        }
+    } catch (error) {
+        console.error("Error suggesting tags:", error);
+        toast({ variant: 'destructive', title: 'AI Error', description: 'Could not suggest tags. Please try again.' });
+    } finally {
+        setIsSuggesting(false);
+    }
+  }
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -144,17 +195,16 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
         }
         setUploadProgress(100);
 
+        const tagsArray = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+
         const dataToSave = {
             ...values,
+            tags: tagsArray,
             date_collected: Timestamp.fromDate(values.date_collected),
-            attachments: fileAttachments,
             updatedAt: serverTimestamp(),
         };
         
-        // Remove attachments from dataToSave because it is of type FileList | null
-        // and cannot be written to Firestore
         delete (dataToSave as any).attachments;
-
 
         if (isEditMode) {
             const sampleDocRef = doc(db, 'samples', sample.id);
@@ -274,7 +324,72 @@ export function SampleForm({ sample, onClose }: SampleFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Description</FormLabel>
-              <FormControl><Textarea placeholder="Brief description of the sample..." {...field} /></FormControl>
+              <FormControl><Textarea placeholder="Brief description of the sample, including source, conditions, and any observations..." {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="tags"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tags</FormLabel>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                    <Input placeholder="e.g., RNA-seq, HeLa, CRISPR" {...field} />
+                </FormControl>
+                <Button type="button" variant="outline" size="icon" onClick={handleSuggestTags} disabled={isSuggesting}>
+                    {isSuggesting ? <span className="animate-spin">⚙️</span> : '✨'}
+                    <span className="sr-only">Suggest Tags</span>
+                </Button>
+              </div>
+              <FormDescription>Comma-separated tags. Click ✨ to get AI suggestions based on the description.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="tissue_type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tissue Type</FormLabel>
+              <FormControl><Input placeholder="e.g., Brain, Liver" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="extraction_method"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Extraction Method</FormLabel>
+              <FormControl><Input placeholder="e.g., Trizol, Qiagen Kit" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="storage_condition"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Storage Condition</FormLabel>
+              <FormControl><Input placeholder="e.g., -80°C, FFPE" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="external_db_link"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>External Link</FormLabel>
+              <FormControl><Input placeholder="e.g., https://www.ncbi.nlm.nih.gov/biosample/..." {...field} /></FormControl>
+               <FormDescription>Link to an external database like NCBI BioSample.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

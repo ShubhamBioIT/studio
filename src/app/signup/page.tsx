@@ -8,10 +8,10 @@ export default function SignupPage() {
         <div className="text-center">
             <Logo />
             <h1 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
-                Create your LabTrack account
+                Create your LabLink account
             </h1>
             <p className="mt-2 text-muted-foreground">
-                Get started with seamless sample management.
+                Get started with intelligent sample management.
             </p>
         </div>
         <SignupForm />

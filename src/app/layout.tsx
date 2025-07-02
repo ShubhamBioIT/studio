@@ -4,8 +4,8 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'LabTrack - Bioinformatics Sample Management',
-  description: 'Manage experimental samples, track workflows, and collaborate with your team.',
+  title: 'LabLink',
+  description: 'An intelligent, AI-powered lab operating system for modern research.',
 };
 
 export default function RootLayout({

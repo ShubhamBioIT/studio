@@ -84,6 +84,22 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
         }
     },
     {
+        accessorKey: 'tags',
+        header: 'Tags',
+        cell: ({ row }) => {
+            const tags = row.original.tags;
+            if (!tags || tags.length === 0) return <div className="text-muted-foreground">-</div>;
+            return (
+                <div className="flex flex-wrap gap-1 max-w-xs">
+                    {tags.map((tag) => (
+                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                    ))}
+                </div>
+            )
+        },
+        enableHiding: true,
+    },
+    {
         accessorKey: 'date_collected',
         header: 'Date Collected',
         cell: ({ row }) => {
@@ -112,7 +128,7 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
                     <DropdownMenuItem
                         onClick={() => navigator.clipboard.writeText(sample.id)}
                     >
-                        Copy Sample ID
+                        Copy Firestore ID
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onEdit(sample)}><Edit className="mr-2 h-4 w-4" /> Edit Sample</DropdownMenuItem>

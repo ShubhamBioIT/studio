@@ -26,12 +26,18 @@ export interface Sample {
   collected_by: string;
   date_collected: Timestamp;
   status: SampleStatus;
-  description: string;
+  description?: string;
   attachments: Attachment[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: {
     uid: string;
     name: string | null;
-  }
+  };
+  // New advanced fields
+  tissue_type?: string;
+  extraction_method?: string;
+  storage_condition?: string;
+  tags?: string[];
+  external_db_link?: string;
 }
