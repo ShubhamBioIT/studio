@@ -1,6 +1,8 @@
 'use client';
 
 import React, { ReactNode } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -17,6 +19,8 @@ import { UserNav } from './UserNav';
 import { Separator } from '../ui/separator';
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
@@ -28,27 +32,35 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton href="#" isActive>
-                  <LayoutDashboard />
-                  Dashboard
+                <SidebarMenuButton asChild isActive={pathname === '/'}>
+                  <Link href="/">
+                    <LayoutDashboard />
+                    Dashboard
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="#">
-                  <Beaker />
-                  Samples
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/samples')}>
+                  <Link href="/samples">
+                    <Beaker />
+                    Samples
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton href="#">
-                  <FlaskConical />
-                  Workflows
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/workflows')}>
+                  <Link href="/workflows">
+                    <FlaskConical />
+                    Workflows
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
                <SidebarMenuItem>
-                <SidebarMenuButton href="#">
-                  <FileText />
-                  Projects
+                <SidebarMenuButton asChild isActive={pathname.startsWith('/projects')}>
+                  <Link href="/projects">
+                    <FileText />
+                    Projects
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -1,21 +1,48 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Sample } from '@/types';
 import StatsCards from './StatsCards';
 import StatusChart from './StatusChart';
 import { SamplesDataTable } from './SamplesDataTable';
-import { columns } from './columns';
+import { getColumns } from './columns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { SampleForm } from './SampleForm';
+import { useToast } from '@/hooks/use-toast';
 import { Terminal } from 'lucide-react';
 
 export default function DashboardClient() {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingSample, setEditingSample] = useState<Sample | null>(null);
+
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [deletingSample, setDeletingSample] = useState<Sample | null>(null);
+  
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!db) {
@@ -41,7 +68,44 @@ export default function DashboardClient() {
     return () => unsubscribe();
   }, []);
 
-  const memoizedColumns = useMemo(() => columns, []);
+  const handleAddNew = () => {
+    setEditingSample(null);
+    setIsSheetOpen(true);
+  };
+
+  const handleEdit = (sample: Sample) => {
+    setEditingSample(sample);
+    setIsSheetOpen(true);
+  };
+
+  const handleDelete = (sample: Sample) => {
+    setDeletingSample(sample);
+    setIsAlertOpen(true);
+  };
+  
+  const confirmDelete = async () => {
+    if (!deletingSample || !db) return;
+    try {
+        await deleteDoc(doc(db, 'samples', deletingSample.id));
+        toast({
+            title: "Sample Deleted",
+            description: `Sample ${deletingSample.sample_id} has been successfully deleted.`,
+        });
+    } catch (error) {
+        console.error("Error deleting sample:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to delete the sample.",
+        });
+    } finally {
+        setIsAlertOpen(false);
+        setDeletingSample(null);
+    }
+  };
+
+
+  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete }), [handleEdit, handleDelete]);
 
   if (loading) {
     return (
@@ -76,16 +140,44 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 md:gap-8">
-      <StatsCards samples={samples} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-            <StatusChart samples={samples} />
-        </div>
-        <div className="lg:col-span-3">
-          <SamplesDataTable columns={memoizedColumns} data={samples} />
+    <>
+      <div className="flex flex-1 flex-col gap-4 md:gap-8">
+        <StatsCards samples={samples} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+              <StatusChart samples={samples} />
+          </div>
+          <div className="lg:col-span-3">
+            <SamplesDataTable columns={memoizedColumns} data={samples} onAddNew={handleAddNew} />
+          </div>
         </div>
       </div>
-    </div>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{editingSample ? 'Edit Sample' : 'Add a New Sample'}</SheetTitle>
+            <SheetDescription>
+                {editingSample ? 'Update the details of the existing sample.' : "Enter the details of the new sample. Click save when you're done."}
+            </SheetDescription>
+          </SheetHeader>
+          <SampleForm sample={editingSample} onClose={() => setIsSheetOpen(false)} />
+        </SheetContent>
+      </Sheet>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the sample
+                    "{deletingSample?.sample_id}" and remove its data from our servers.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete}>Continue</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -31,29 +31,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PlusCircle, SlidersHorizontal } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
-import { SampleForm } from './SampleForm';
+
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onAddNew: () => void;
 }
 
 export function SamplesDataTable<TData, TValue>({
   columns,
   data,
+  onAddNew,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -107,13 +101,13 @@ export function SamplesDataTable<TData, TValue>({
                             column.toggleVisibility(!!value)
                         }
                         >
-                        {column.id.replace('_', ' ')}
+                        {column.id.replace(/_/g, ' ')}
                         </DropdownMenuCheckboxItem>
                     );
                     })}
                 </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => setIsSheetOpen(true)}>
+            <Button onClick={onAddNew}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Sample
             </Button>
@@ -181,17 +175,6 @@ export function SamplesDataTable<TData, TValue>({
           Next
         </Button>
       </div>
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>Add a New Sample</SheetTitle>
-            <SheetDescription>
-              Enter the details of the new sample. Click save when you're done.
-            </SheetDescription>
-          </SheetHeader>
-          <SampleForm onClose={() => setIsSheetOpen(false)} />
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

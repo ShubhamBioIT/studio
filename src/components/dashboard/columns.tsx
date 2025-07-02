@@ -30,7 +30,13 @@ const statusColor: Record<SampleStatus, string> = {
     failed: 'bg-destructive text-destructive-foreground',
 }
 
-export const columns: ColumnDef<Sample>[] = [
+type GetColumnsProps = {
+  onEdit: (sample: Sample) => void;
+  onDelete: (sample: Sample) => void;
+};
+
+
+export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sample>[] => [
     {
         id: 'select',
         header: ({ table }) => (
@@ -109,9 +115,9 @@ export const columns: ColumnDef<Sample>[] = [
                         Copy Sample ID
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem><Edit className="mr-2 h-4 w-4" /> Edit Sample</DropdownMenuItem>
-                    <DropdownMenuItem><Download className="mr-2 h-4 w-4" /> Download Files</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4" /> Delete Sample</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(sample)}><Edit className="mr-2 h-4 w-4" /> Edit Sample</DropdownMenuItem>
+                    <DropdownMenuItem disabled><Download className="mr-2 h-4 w-4" /> Download Files</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(sample)}><Trash2 className="mr-2 h-4 w-4" /> Delete Sample</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             );

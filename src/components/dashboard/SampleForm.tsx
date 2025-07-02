@@ -29,12 +29,12 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { collection, addDoc, updateDoc, doc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { SAMPLE_STATUS } from '@/lib/constants';
-import type { Attachment, SampleStatus } from '@/types';
+import type { Attachment, Sample } from '@/types';
 import { Progress } from '../ui/progress';
 
 const formSchema = z.object({
@@ -43,18 +43,21 @@ const formSchema = z.object({
   description: z.string().optional(),
   status: z.enum(['pending', 'in-progress', 'completed', 'failed']),
   date_collected: z.date(),
-  attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList)).optional(),
+  attachments: (typeof window === 'undefined' ? z.any() : z.instanceof(FileList).optional()).nullable(),
 });
 
 type SampleFormProps = {
+  sample?: Sample | null;
   onClose: () => void;
 };
 
-export function SampleForm({ onClose }: SampleFormProps) {
+export function SampleForm({ sample, onClose }: SampleFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  const isEditMode = !!sample;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,8 +67,31 @@ export function SampleForm({ onClose }: SampleFormProps) {
       description: '',
       status: 'pending',
       date_collected: new Date(),
+      attachments: null,
     },
   });
+
+  useEffect(() => {
+    if (isEditMode) {
+      form.reset({
+        sample_id: sample.sample_id,
+        project_name: sample.project_name,
+        description: sample.description || '',
+        status: sample.status,
+        date_collected: sample.date_collected.toDate(),
+        attachments: null,
+      });
+    } else {
+        form.reset({
+            sample_id: '',
+            project_name: '',
+            description: '',
+            status: 'pending',
+            date_collected: new Date(),
+            attachments: null,
+        });
+    }
+  }, [sample, form, isEditMode]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -85,7 +111,7 @@ export function SampleForm({ onClose }: SampleFormProps) {
     setUploadProgress(0);
 
     try {
-        const fileAttachments: Attachment[] = [];
+        const fileAttachments: Attachment[] = sample?.attachments || [];
         if (values.attachments && values.attachments.length > 0) {
             for (let i = 0; i < values.attachments.length; i++) {
                 const file = values.attachments[i];
@@ -118,25 +144,44 @@ export function SampleForm({ onClose }: SampleFormProps) {
         }
         setUploadProgress(100);
 
-        await addDoc(collection(db, 'samples'), {
+        const dataToSave = {
             ...values,
             date_collected: Timestamp.fromDate(values.date_collected),
             attachments: fileAttachments,
-            createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-            collected_by: user.displayName || user.email,
-            createdBy: {
-                uid: user.uid,
-                name: user.displayName || user.email,
-            }
-        });
+        };
+        
+        // Remove attachments from dataToSave because it is of type FileList | null
+        // and cannot be written to Firestore
+        delete (dataToSave as any).attachments;
 
-        toast({ title: 'Success', description: 'Sample added successfully.' });
+
+        if (isEditMode) {
+            const sampleDocRef = doc(db, 'samples', sample.id);
+            await updateDoc(sampleDocRef, {
+                ...dataToSave,
+                attachments: fileAttachments,
+            });
+            toast({ title: 'Success', description: 'Sample updated successfully.' });
+        } else {
+            await addDoc(collection(db, 'samples'), {
+                ...dataToSave,
+                attachments: fileAttachments,
+                createdAt: serverTimestamp(),
+                collected_by: user.displayName || user.email,
+                createdBy: {
+                    uid: user.uid,
+                    name: user.displayName || user.email,
+                }
+            });
+            toast({ title: 'Success', description: 'Sample added successfully.' });
+        }
+
         form.reset();
         onClose();
     } catch (error) {
-        console.error('Error adding document: ', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to add sample.' });
+        console.error('Error saving document: ', error);
+        toast({ variant: 'destructive', title: 'Error', description: `Failed to ${isEditMode ? 'update' : 'add'} sample.` });
     } finally {
         setIsSubmitting(false);
         setUploadProgress(null);
@@ -174,7 +219,7 @@ export function SampleForm({ onClose }: SampleFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                 </FormControl>
@@ -243,7 +288,7 @@ export function SampleForm({ onClose }: SampleFormProps) {
               <FormControl>
                 <Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...rest} />
               </FormControl>
-              <FormDescription>Upload images, CSV, FASTA files, etc.</FormDescription>
+              <FormDescription>Upload images, CSV, FASTA files, etc. Existing attachments are preserved.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -257,7 +302,7 @@ export function SampleForm({ onClose }: SampleFormProps) {
         <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : 'Save Sample'}
+                {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Sample')}
             </Button>
         </div>
       </form>
