@@ -51,12 +51,6 @@ const createSampleTool = ai.defineTool({
 });
 
 
-const projectIdeaPrompt = ai.definePrompt({
-    name: 'projectIdeaPrompt',
-    system: `You are a creative and experienced bioinformatics researcher. Generate 3-5 innovative project ideas based on the provided topic. For each idea, provide a name, a short description, and a suitable omics type. Format the output as a bulleted list.`,
-    input: { schema: z.object({ topic: z.string() }) },
-});
-
 const suggestProjectIdeasTool = ai.defineTool({
     name: 'suggestProjectIdeas',
     description: 'Generates creative and relevant project ideas based on a given topic or field of study.',
@@ -65,14 +59,11 @@ const suggestProjectIdeasTool = ai.defineTool({
     }),
     outputSchema: z.any()
 }, async ({ topic }) => {
-    const { text } = await projectIdeaPrompt({ topic });
-    return text;
-});
-
-const workflowIdeaPrompt = ai.definePrompt({
-    name: 'workflowIdeaPrompt',
-    system: `You are an expert in creating scientific data analysis pipelines. Generate 3-5 workflow ideas based on the provided topic. For each idea, provide a name, a short description, and a suitable pipeline type. Format the output as a bulleted list.`,
-    input: { schema: z.object({ topic: z.string() }) },
+    const llmResponse = await ai.generate({
+        model: 'googleai/gemini-2.0-flash',
+        prompt: `You are a creative and experienced bioinformatics researcher. Generate 3-5 innovative project ideas based on the provided topic: "${topic}". For each idea, provide a name, a short description, and a suitable omics type. Format the output as a bulleted list.`
+    });
+    return llmResponse.text;
 });
 
 const suggestWorkflowIdeasTool = ai.defineTool({
@@ -83,8 +74,11 @@ const suggestWorkflowIdeasTool = ai.defineTool({
     }),
     outputSchema: z.any()
 }, async ({ topic }) => {
-    const { text } = await workflowIdeaPrompt({ topic });
-    return text;
+    const llmResponse = await ai.generate({
+        model: 'googleai/gemini-2.0-flash',
+        prompt: `You are an expert in creating scientific data analysis pipelines. Generate 3-5 workflow ideas based on the provided topic: "${topic}". For each idea, provide a name, a short description, and a suitable pipeline type. Format the output as a bulleted list.`
+    });
+    return llmResponse.text;
 });
 
 // The main agent flow
