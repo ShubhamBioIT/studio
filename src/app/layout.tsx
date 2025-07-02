@@ -4,7 +4,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'LabLink',
+  title: 'LabTrack AI',
   description: 'An intelligent, AI-powered lab operating system for modern research.',
 };
 

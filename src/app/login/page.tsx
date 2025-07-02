@@ -8,7 +8,7 @@ export default function LoginPage() {
         <div className="text-center">
             <Logo />
             <h1 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
-                Welcome back to LabLink
+                Welcome back to LabTrack AI
             </h1>
             <p className="mt-2 text-muted-foreground">
                 Sign in to manage your samples and projects.
