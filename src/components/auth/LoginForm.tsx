@@ -56,10 +56,14 @@ export function LoginForm() {
       });
       router.push('/');
     } catch (error: any) {
+      let description = error.message || 'An unexpected error occurred.';
+      if (error.code === 'auth/configuration-not-found') {
+        description = 'Email/Password sign-in is not enabled in your Firebase project. Please enable it in the Firebase Authentication console.'
+      }
       toast({
         variant: 'destructive',
         title: 'Authentication Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description,
       });
     } finally {
         setIsLoading(false);
