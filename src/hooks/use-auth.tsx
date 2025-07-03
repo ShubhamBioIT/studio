@@ -10,8 +10,7 @@ import {
 import {
   onAuthStateChanged,
   User as FirebaseUser,
-  GoogleAuthProvider,
-  signInWithPopup,
+  signInAnonymously,
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -28,7 +27,7 @@ interface AuthContextType {
   loading: boolean;
   isFirebaseConfigured: boolean;
   error: Error | null;
-  signInWithGoogle: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -60,10 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (userDoc.exists()) {
             setUser(userDoc.data() as UserProfile);
           } else {
+            const isGuest = fbUser.isAnonymous;
             const newUserProfile: UserProfile = {
               uid: fbUser.uid,
               email: fbUser.email,
-              displayName: fbUser.displayName,
+              displayName: isGuest ? 'Guest User' : fbUser.displayName,
               role: USER_ROLES.VIEWER,
               createdAt: serverTimestamp(),
             };
@@ -85,13 +85,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [isFirebaseConfigured]);
 
-  const signInWithGoogle = async () => {
+  const signInAsGuest = async () => {
     if (!isFirebaseConfigured) throw new Error("Firebase is not configured. Please check your .env.local file.");
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth!, provider);
+      await signInAnonymously(auth!);
     } catch (error) {
-      console.error('Error signing in with Google:', error);
+      console.error('Error signing in as guest:', error);
       throw error;
     }
   };
@@ -101,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth!, email, pass);
         await updateProfile(userCredential.user, { displayName: name });
+        await userCredential.user.getIdToken(true); // Forces refresh to get new displayName in onAuthStateChanged
     } catch (error) {
         console.error("Error signing up with email:", error);
         throw error;
@@ -130,21 +130,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!auth || !db || !auth.currentUser) {
         throw new Error('User not authenticated.');
     }
+    if (auth.currentUser.isAnonymous) {
+        throw new Error('Guest users cannot change their profile name.');
+    }
     try {
-        // Update Firebase Auth profile
         await updateProfile(auth.currentUser, { displayName: name });
         
-        // Update Firestore user document
         const userDocRef = doc(db, 'users', auth.currentUser.uid);
         await updateDoc(userDocRef, { displayName: name });
 
-        // Update local state to reflect change immediately
         setUser(currentUser => {
             if (!currentUser) return null;
             return { ...currentUser, displayName: name };
         });
         
-        // This triggers a re-render in components that use `firebaseUser`
         setFirebaseUser(auth.currentUser);
 
     } catch(error) {
@@ -154,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, isFirebaseConfigured, error, signInWithGoogle, signUpWithEmail, signInWithEmail, signOut, updateUserProfile }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, isFirebaseConfigured, error, signInAsGuest, signUpWithEmail, signInWithEmail, signOut, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,9 +23,10 @@ const formSchema = z.object({
 });
 
 export function UpdateProfileForm() {
-  const { user, updateUserProfile } = useAuth();
+  const { user, firebaseUser, updateUserProfile } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isGuest = firebaseUser?.isAnonymous;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -68,13 +70,14 @@ export function UpdateProfileForm() {
             <FormItem>
               <FormLabel>Display Name</FormLabel>
               <FormControl>
-                <Input placeholder="Your Name" {...field} />
+                <Input placeholder="Your Name" {...field} disabled={isGuest} />
               </FormControl>
+              {isGuest && <FormDescription>Guest users cannot change their display name.</FormDescription>}
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isGuest}>
           {isSubmitting ? 'Saving...' : 'Save Changes'}
         </Button>
       </form>
