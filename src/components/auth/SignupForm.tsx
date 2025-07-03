@@ -86,7 +86,7 @@ export function SignupForm() {
     } catch (error: any) {
         let description = error.message || 'Could not sign in with Google. Please try again.';
         if (error.code === 'auth/popup-closed-by-user') {
-            description = 'The sign-up popup was closed before completing. Please try again.';
+            description = 'The sign-up popup was closed before completing. This can happen if the application\'s domain is not authorized in your Firebase project. Please go to your Firebase Console -> Authentication -> Settings -> Authorized domains, and ensure the domain from your browser\'s address bar is listed. If it is, please try again.';
         } else if (error.code === 'auth/unauthorized-domain') {
             description = 'This domain is not authorized for Google Sign-In. Please add it to your Firebase project under Authentication -> Settings -> Authorized domains. Copy the domain from your browser\'s address bar.';
         } else if (error.code === 'auth/operation-not-allowed') {
