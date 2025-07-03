@@ -9,9 +9,6 @@
 
 </div>
 
-![LabLink Dashboard](https://placehold.co/1200/600.png?text=LabLink+Dashboard+Screenshot)
-*The main dashboard provides a comprehensive overview of your lab's activities.*
-
 ---
 
 ## About The Project
