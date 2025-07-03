@@ -78,7 +78,7 @@ export function LoginForm() {
         router.push('/');
     } catch (error: any) {
         let description = error.message || 'Could not sign in as guest. Please try again.';
-         if (error.code === 'auth/operation-not-allowed') {
+         if (error.code === 'auth/operation-not-allowed' || error.code === 'auth/admin-restricted-operation') {
             description = 'Anonymous sign-in is not enabled for this project. Please go to your Firebase Console, open Authentication -> Sign-in method, and enable the Anonymous provider.';
         }
         toast({
