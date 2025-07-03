@@ -19,9 +19,10 @@ import { format } from 'date-fns';
 type GetColumnsProps = {
   onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
+  currentUserUid?: string;
 };
 
-export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Project>[] => [
+export const getColumns = ({ onEdit, onDelete, currentUserUid }: GetColumnsProps): ColumnDef<Project>[] => [
     {
         id: 'select',
         header: ({ table }) => (
@@ -87,6 +88,8 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Pro
         id: 'actions',
         cell: ({ row }) => {
             const project = row.original;
+            const isOwner = project.createdBy?.uid === currentUserUid;
+
             return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -97,9 +100,9 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Pro
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(project)}><Edit className="mr-2 h-4 w-4" /> Edit Project</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(project)} disabled={!isOwner}><Edit className="mr-2 h-4 w-4" /> Edit Project</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(project)}><Trash2 className="mr-2 h-4 w-4" /> Delete Project</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(project)} disabled={!isOwner}><Trash2 className="mr-2 h-4 w-4" /> Delete Project</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             );

@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Terminal } from 'lucide-react';
 import { WorkflowsDataTable } from './WorkflowsDataTable';
 import { WorkflowForm } from './WorkflowForm';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function WorkflowsClient() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -41,6 +42,7 @@ export default function WorkflowsClient() {
   const [deletingWorkflow, setDeletingWorkflow] = useState<Workflow | null>(null);
   
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!db) {
@@ -102,7 +104,7 @@ export default function WorkflowsClient() {
     }
   };
 
-  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete }), []);
+  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete, currentUserUid: user?.uid }), [user]);
 
   if (loading) {
     return <Skeleton className="h-96 w-full" />;

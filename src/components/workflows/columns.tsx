@@ -28,10 +28,11 @@ const statusVariant: Record<WorkflowStatus, 'default' | 'secondary' | 'outline'>
 type GetColumnsProps = {
   onEdit: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
+  currentUserUid?: string;
 };
 
 
-export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Workflow>[] => [
+export const getColumns = ({ onEdit, onDelete, currentUserUid }: GetColumnsProps): ColumnDef<Workflow>[] => [
     {
         id: 'select',
         header: ({ table }) => (
@@ -105,6 +106,8 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Wor
         id: 'actions',
         cell: ({ row }) => {
             const workflow = row.original;
+            const isOwner = workflow.createdBy?.uid === currentUserUid;
+
             return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -115,9 +118,9 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Wor
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(workflow)}><Edit className="mr-2 h-4 w-4" /> Edit Workflow</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(workflow)} disabled={!isOwner}><Edit className="mr-2 h-4 w-4" /> Edit Workflow</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(workflow)}><Trash2 className="mr-2 h-4 w-4" /> Delete Workflow</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(workflow)} disabled={!isOwner}><Trash2 className="mr-2 h-4 w-4" /> Delete Workflow</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             );

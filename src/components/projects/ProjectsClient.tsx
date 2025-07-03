@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Terminal } from 'lucide-react';
 import { ProjectsDataTable } from './ProjectsDataTable';
 import { ProjectForm } from './ProjectForm';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function ProjectsClient() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -41,6 +42,7 @@ export default function ProjectsClient() {
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!db) {
@@ -102,7 +104,7 @@ export default function ProjectsClient() {
     }
   };
 
-  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete }), []);
+  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete, currentUserUid: user?.uid }), [user]);
 
   if (loading) {
     return <Skeleton className="h-96 w-full" />;

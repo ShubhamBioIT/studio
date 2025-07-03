@@ -38,10 +38,11 @@ const statusColor: Record<SampleStatus, string> = {
 type GetColumnsProps = {
   onEdit: (sample: Sample) => void;
   onDelete: (sample: Sample) => void;
+  currentUserUid?: string;
 };
 
 
-export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sample>[] => [
+export const getColumns = ({ onEdit, onDelete, currentUserUid }: GetColumnsProps): ColumnDef<Sample>[] => [
     {
         id: 'select',
         header: ({ table }) => (
@@ -137,6 +138,8 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
         cell: ({ row }) => {
             const sample = row.original;
             const hasAttachments = sample.attachments && sample.attachments.length > 0;
+            const isOwner = sample.createdBy?.uid === currentUserUid;
+
             return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -153,7 +156,7 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
                         Copy Firestore ID
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onEdit(sample)}><Edit className="mr-2 h-4 w-4" /> Edit Sample</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(sample)} disabled={!isOwner}><Edit className="mr-2 h-4 w-4" /> Edit Sample</DropdownMenuItem>
                     
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger disabled={!hasAttachments}>
@@ -170,7 +173,7 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Sam
                         </DropdownMenuPortal>
                     </DropdownMenuSub>
 
-                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(sample)}><Trash2 className="mr-2 h-4 w-4" /> Delete Sample</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => onDelete(sample)} disabled={!isOwner}><Trash2 className="mr-2 h-4 w-4" /> Delete Sample</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
             );

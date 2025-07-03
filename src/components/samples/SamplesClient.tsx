@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Terminal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Beaker } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function SamplesClient() {
   const [samples, setSamples] = useState<Sample[]>([]);
@@ -43,6 +44,7 @@ export default function SamplesClient() {
   const [deletingSample, setDeletingSample] = useState<Sample | null>(null);
   
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!db) {
@@ -105,7 +107,7 @@ export default function SamplesClient() {
   };
 
 
-  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete }), []);
+  const memoizedColumns = useMemo(() => getColumns({ onEdit: handleEdit, onDelete: handleDelete, currentUserUid: user?.uid }), [user]);
 
   if (loading) {
     return (
