@@ -136,7 +136,7 @@ export default function SamplesClient() {
                 Samples
             </CardTitle>
             <CardDescription>
-                Browse, add, and manage all experimental samples.
+                Browse, add, and manage experimental samples.
             </CardDescription>
         </CardHeader>
         <CardContent>

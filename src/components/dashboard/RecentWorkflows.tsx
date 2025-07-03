@@ -10,7 +10,7 @@ export default function RecentWorkflows({ workflows }: { workflows: Workflow[] }
     <Card>
       <CardHeader>
         <CardTitle>Recent Workflows</CardTitle>
-        <CardDescription>Your most recently created workflows.</CardDescription>
+        <CardDescription>Most recently created workflows.</CardDescription>
       </CardHeader>
       <CardContent>
         {workflows.length > 0 ? (

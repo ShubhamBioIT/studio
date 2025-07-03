@@ -10,7 +10,7 @@ export default function RecentProjects({ projects }: { projects: Project[] }) {
     <Card>
       <CardHeader>
         <CardTitle>Recent Projects</CardTitle>
-        <CardDescription>Your most recently created projects.</CardDescription>
+        <CardDescription>Most recently created projects.</CardDescription>
       </CardHeader>
       <CardContent>
         {projects.length > 0 ? (
